@@ -161,7 +161,7 @@ func main() {
 				log.WithFields(log.Fields{
 					"slackUserID":      slackUserID,
 					"slackUserGroupID": slackUserGroupID,
-				}).Info("Will assign slackUserID to slackUserGroupID")
+				}).Info("Would assign slackUserID to slackUserGroupID")
 			} else {
 				_, err := sAPI.client.UpdateUserGroupMembers(slackUserGroupID, slackUserID)
 				if err != nil {
