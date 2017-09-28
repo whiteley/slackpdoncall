@@ -113,7 +113,7 @@ func readSyncMap(file string) (map[string]string, error) {
 }
 
 func main() {
-	var syncInterval = flag.Int("interval", 60, "seconds to wait between sync loops")
+	var syncInterval = flag.Int("interval", -1, "seconds to wait between sync loops")
 	var syncmap = flag.String("syncmap", "", "csv file containing pagerduty to slack mapping (required)")
 	flag.Parse()
 	if *syncmap == "" {
@@ -156,6 +156,10 @@ func main() {
 			// 	log.WithError(err).Fatal("Failed to update user group")
 			// }
 		}
-		time.Sleep(time.Duration(*syncInterval) * time.Second)
+		if *syncInterval == -1 {
+			os.Exit(0)
+		} else {
+			time.Sleep(time.Duration(*syncInterval) * time.Second)
+		}
 	}
 }
