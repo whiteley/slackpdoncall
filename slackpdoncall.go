@@ -1,8 +1,8 @@
 package main
 
 import (
+	"encoding/csv"
 	"os"
-	"strings"
 	"time"
 
 	pagerduty "github.com/PagerDuty/go-pagerduty"
@@ -94,17 +94,33 @@ func (slack slackClient) getUserID(email string) string {
 	return slackUserID
 }
 
+func readSyncMap(file string) (map[string]string, error) {
+	f, err := os.Open(file)
+	defer f.Close()
+	if err != nil {
+		return nil, err
+	}
+	onCallMap := make(map[string]string)
+	records, err := csv.NewReader(f).ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	for _, pair := range records {
+		onCallMap[pair[0]] = pair[1]
+	}
+	return onCallMap, nil
+}
+
 func main() {
-	if len(os.Args) < 2 {
-		log.Fatalf("Usage: %s pd:slack[,pd:slack]", os.Args[0])
+	if len(os.Args) != 2 {
+		log.Fatalf("Usage: %s syncmap.csv", os.Args[0])
 	}
 
 	syncInterval := 60
 
-	onCallMap := make(map[string]string)
-	for _, pair := range strings.Split(os.Args[1], ",") {
-		s := strings.Split(pair, ":")
-		onCallMap[s[0]] = s[1]
+	onCallMap, err := readSyncMap(os.Args[1])
+	if err != nil {
+		log.Fatalf("Error reading syncmap from %s", os.Args[1])
 	}
 
 	pdToken := os.Getenv("PD_TOKEN")
