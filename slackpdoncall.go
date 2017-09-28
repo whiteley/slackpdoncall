@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/csv"
+	"flag"
 	"os"
 	"time"
 
@@ -112,15 +113,17 @@ func readSyncMap(file string) (map[string]string, error) {
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		log.Fatalf("Usage: %s syncmap.csv", os.Args[0])
+	var syncInterval = flag.Int("interval", 60, "seconds to wait between sync loops")
+	var syncmap = flag.String("syncmap", "", "csv file containing pagerduty to slack mapping (required)")
+	flag.Parse()
+	if *syncmap == "" {
+		flag.Usage()
+		os.Exit(2)
 	}
 
-	syncInterval := 60
-
-	onCallMap, err := readSyncMap(os.Args[1])
+	onCallMap, err := readSyncMap(*syncmap)
 	if err != nil {
-		log.Fatalf("Error reading syncmap from %s", os.Args[1])
+		log.Fatalf("Error reading syncmap from %s", *syncmap)
 	}
 
 	pdToken := os.Getenv("PD_TOKEN")
@@ -153,6 +156,6 @@ func main() {
 			// 	log.WithError(err).Fatal("Failed to update user group")
 			// }
 		}
-		time.Sleep(time.Duration(syncInterval) * time.Second)
+		time.Sleep(time.Duration(*syncInterval) * time.Second)
 	}
 }
