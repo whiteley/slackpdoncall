@@ -114,16 +114,16 @@ func readSyncMap(file string) (map[string]string, error) {
 
 func main() {
 	var syncInterval = flag.Int("interval", -1, "seconds to wait between sync loops")
-	var syncmap = flag.String("syncmap", "", "csv file containing pagerduty to slack mapping (required)")
+	var syncMap = flag.String("map", "", "csv file containing pagerduty to slack mapping (required)")
 	flag.Parse()
-	if *syncmap == "" {
+	if *syncMap == "" {
 		flag.Usage()
 		os.Exit(2)
 	}
 
-	onCallMap, err := readSyncMap(*syncmap)
+	onCallMap, err := readSyncMap(*syncMap)
 	if err != nil {
-		log.Fatalf("Error reading syncmap from %s", *syncmap)
+		log.Fatalf("Error reading map from %s", *syncMap)
 	}
 
 	pdToken := os.Getenv("PD_TOKEN")
