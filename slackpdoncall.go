@@ -55,7 +55,7 @@ func (pd pdClient) findOnCallEmail(escalationPolicy string) string {
 	log.WithFields(log.Fields{
 		"email":            onCallUser.Email,
 		"escalationPolicy": escalationPolicy,
-	}).Info("Found email for escalationPolicy")
+	}).Debug("Found email for escalationPolicy")
 	return onCallUser.Email
 }
 
@@ -71,7 +71,7 @@ func (slack slackClient) getUserGroupID(handle string) string {
 			log.WithFields(log.Fields{
 				"handle":           handle,
 				"slackUserGroupID": slackUserGroupID,
-			}).Info("Found slackUserGroupID for handle")
+			}).Debug("Found slackUserGroupID for handle")
 		}
 	}
 	return slackUserGroupID
@@ -89,7 +89,7 @@ func (slack slackClient) getUserID(email string) string {
 			log.WithFields(log.Fields{
 				"email":       email,
 				"slackUserID": slackUserID,
-			}).Info("Found slackUserID for email")
+			}).Debug("Found slackUserID for email")
 		}
 	}
 	return slackUserID
@@ -113,12 +113,18 @@ func readSyncMap(file string) (map[string]string, error) {
 }
 
 func main() {
+	var debug = flag.Bool("debug", false, "output debugging information")
+	var noOp = flag.Bool("noop", false, "only print actions")
 	var syncInterval = flag.Int("interval", -1, "seconds to wait between sync loops")
 	var syncMap = flag.String("map", "", "csv file containing pagerduty to slack mapping (required)")
 	flag.Parse()
 	if *syncMap == "" {
 		flag.Usage()
 		os.Exit(2)
+	}
+
+	if *debug {
+		log.SetLevel(log.DebugLevel)
 	}
 
 	onCallMap, err := readSyncMap(*syncMap)
@@ -142,19 +148,26 @@ func main() {
 
 	for {
 		for escalationPolicy, userGroup := range onCallMap {
+			log.WithFields(log.Fields{
+				"escalationPolicy": escalationPolicy,
+				"userGroup":        userGroup,
+			}).Info("Syncing escalationPolicy and userGroup")
+
 			onCallEmail := pdAPI.findOnCallEmail(escalationPolicy)
 			slackUserGroupID := sAPI.getUserGroupID(userGroup)
 			slackUserID := sAPI.getUserID(onCallEmail)
 
-			log.WithFields(log.Fields{
-				"slackUserID":      slackUserID,
-				"slackUserGroupID": slackUserGroupID,
-			}).Info("Will assign slackUserID to slackUserGroupID")
-
-			// _, err := sAPI.UpdateUserGroupMembers(slackUserGroupID, slackUserID)
-			// if err != nil {
-			// 	log.WithError(err).Fatal("Failed to update user group")
-			// }
+			if *noOp {
+				log.WithFields(log.Fields{
+					"slackUserID":      slackUserID,
+					"slackUserGroupID": slackUserGroupID,
+				}).Info("Will assign slackUserID to slackUserGroupID")
+			} else {
+				_, err := sAPI.client.UpdateUserGroupMembers(slackUserGroupID, slackUserID)
+				if err != nil {
+					log.WithError(err).Fatal("Failed to update user group")
+				}
+			}
 		}
 		if *syncInterval == -1 {
 			os.Exit(0)
